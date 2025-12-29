@@ -385,7 +385,7 @@ function analyze() {
         if (csElectiveCredits > 42) {
             csOverflow = csElectiveCredits - 42;
             freeCredits += csOverflow;
-            freeOverflowSources.push(`含專業溢流 ${csOverflow}`);
+            freeOverflowSources.push(`含專業超額轉入 ${csOverflow}`);
         }
 
         // 規則 3: [NEW] 只有「核心通識 > 18」或「語言 > 6」的超額，才會溢流到自由選修 (Max 4)
@@ -394,7 +394,7 @@ function analyze() {
         const genEdOverflow = Math.min(coreOverflow + langOverflow, 4);
         if (genEdOverflow > 0) {
             freeCredits += genEdOverflow;
-            freeOverflowSources.push(`含通識/語言溢流 ${genEdOverflow}`);
+            freeOverflowSources.push(`含通識/語言超額轉入 ${genEdOverflow}`);
         }
 
         // --- 5. Render Stats ---
@@ -403,11 +403,11 @@ function analyze() {
 
         document.getElementById('csElectiveCredits').innerText = `${csElectiveCredits}`;
         if (phyOverflow > 0 && csOverflow > 0) {
-            document.getElementById('csOverflowMsg').innerText = `(含物理溢流 ${phyOverflow}；其中 ${csOverflow} 學分溢流至自由選修)`;
+            document.getElementById('csOverflowMsg').innerText = `(含物理超額計入 ${phyOverflow}；其中 ${csOverflow} 學分轉入自由選修)`;
         } else if (phyOverflow > 0) {
-            document.getElementById('csOverflowMsg').innerText = `(含物理溢流 ${phyOverflow})`;
+            document.getElementById('csOverflowMsg').innerText = `(含物理超額計入 ${phyOverflow})`;
         } else if (csOverflow > 0) {
-            document.getElementById('csOverflowMsg').innerText = `(其中 ${csOverflow} 學分溢流至自由選修)`;
+            document.getElementById('csOverflowMsg').innerText = `(其中 ${csOverflow} 學分轉入自由選修)`;
         } else {
             document.getElementById('csOverflowMsg').innerText = "";
         }
@@ -418,13 +418,13 @@ function analyze() {
         // --- Render Electives Detail Lists ---
         // Add overflow as synthetic entries so the list matches the summary totals.
         if (phyOverflow > 0) {
-            csElectiveCourses.push({ name: '[溢流] 物理(一)(二) 超額併入專業選修', credit: phyOverflow, overflow: true });
+            csElectiveCourses.push({ name: '學分調整：物理(一)(二) 超額計入專業選修', credit: phyOverflow, overflow: true });
         }
         if (csOverflow > 0) {
-            freeElectiveCourses.push({ name: '[溢流] 專業選修超額轉入自由選修', credit: csOverflow, overflow: true });
+            freeElectiveCourses.push({ name: '學分調整：專業選修超額轉入自由選修', credit: csOverflow, overflow: true });
         }
         if (genEdOverflow > 0) {
-            freeElectiveCourses.push({ name: '[溢流] 核心/語言超額轉入自由選修', credit: genEdOverflow, overflow: true });
+            freeElectiveCourses.push({ name: '學分調整：核心/語言超額轉入自由選修', credit: genEdOverflow, overflow: true });
         }
 
         const csElectiveListDetail = document.getElementById('csElectiveListDetail');

@@ -62,6 +62,61 @@ const CORE_RULES = {
 
 // --- HELPER FUNCTIONS ---
 
+// --- THEME (DARK MODE) ---
+
+const THEME_STORAGE_KEY = 'nycu-grad-check-theme';
+
+function getSystemTheme() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+}
+
+function getStoredTheme() {
+    const t = localStorage.getItem(THEME_STORAGE_KEY);
+    return (t === 'dark' || t === 'light') ? t : null;
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+        const isDark = theme === 'dark';
+        btn.textContent = isDark ? '淺色模式' : '深色模式';
+        btn.setAttribute('aria-label', isDark ? '切換淺色模式' : '切換深色模式');
+    }
+}
+
+function initTheme() {
+    const stored = getStoredTheme();
+    applyTheme(stored || getSystemTheme());
+
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') || getSystemTheme();
+            const next = current === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(THEME_STORAGE_KEY, next);
+            applyTheme(next);
+        });
+    }
+
+    if (window.matchMedia) {
+        const mql = window.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = () => {
+            // If user explicitly chose a theme, do not override it.
+            if (getStoredTheme()) return;
+            applyTheme(getSystemTheme());
+        };
+        if (typeof mql.addEventListener === 'function') {
+            mql.addEventListener('change', onChange);
+        } else if (typeof mql.addListener === 'function') {
+            mql.addListener(onChange);
+        }
+    }
+}
+
 function normalizeName(name) {
     if (!name) return "";
     let n = name.replace(/\s+/g, "");
@@ -70,6 +125,8 @@ function normalizeName(name) {
     n = n.replace(/\uF9F1/g, "理");
     return n;
 }
+
+document.addEventListener('DOMContentLoaded', initTheme);
 
 function checkCourseTaken(target, userCoursesNormalized) {
     if (Array.isArray(target)) {
@@ -133,6 +190,9 @@ function analyze() {
         let csElectiveCredits = 0;
         let freeCredits = 0;
         let compulsoryCredits = 0;
+
+        const csElectiveCourses = [];
+        const freeElectiveCourses = [];
 
         let genEdStats = {
             basic: 0, area: 0, lang: 0, coreTotal: 0,
@@ -285,6 +345,7 @@ function analyze() {
                 csElectiveCredits += c.credit;
                 totalCredits += c.credit;
                 categorized = true;
+                csElectiveCourses.push({ name: c.name, credit: c.credit });
                 log.push(`[專業/學程選修] ${c.name} (${c.credit})`);
             }
 
@@ -293,33 +354,16 @@ function analyze() {
                 freeCredits += c.credit;
                 totalCredits += c.credit;
                 categorized = true;
+                freeElectiveCourses.push({ name: c.name, credit: c.credit });
                 log.push(`[自由選修] ${c.name} (${c.credit})`);
             }
         });
 
         // --- 4. Overflow Logic (計算溢流) ---
 
-        let overflowSources = [];
+        const freeOverflowSources = [];
 
-        // 規則 1: 專業選修 > 42 -> 自由選修
-        let csOverflow = 0;
-        if (csElectiveCredits > 42) {
-            csOverflow = csElectiveCredits - 42;
-            freeCredits += csOverflow;
-            overflowSources.push(`含專業溢流 ${csOverflow}`);
-        }
-
-        // 規則 2: 核心通識 > 28 -> 自由選修 (Max 4)
-        let genEdTotal = genEdStats.coreTotal + genEdStats.lang + genEdStats.otherGen;
-        let genEdOverflow = 0;
-        if (genEdTotal > 28) {
-            let potentialOverflow = genEdTotal - 28;
-            genEdOverflow = Math.min(potentialOverflow, 4);
-            freeCredits += genEdOverflow;
-            overflowSources.push(`含通識溢流 ${genEdOverflow}`);
-        }
-
-        // 規則 3: [NEW] 物理(一)(二) 溢流
+        // 規則 1: [NEW] 物理(一)(二) 溢流 -> 專業選修
         // 判定哪一科是基礎科學主科
         const sciOptions = [
             { name: "物理", credit: sciCheck.phy },
@@ -329,12 +373,28 @@ function analyze() {
         // 找出學分最高的當作主科 (Reduce: 比較 p 和 c 的 credit)
         const bestSci = sciOptions.reduce((p, c) => (p.credit > c.credit) ? p : c);
 
-        // 若主科是物理，且學分 >= 8 (代表修了物一+物二)，多出的部分 (總學分 - 6) 算入自由選修
+        // 若主科是物理，且學分 >= 8 (代表修了物一+物二)，多出的部分 (總學分 - 6) 算入專業選修
         let phyOverflow = 0;
         if (bestSci.name === "物理" && bestSci.credit >= 8) {
             phyOverflow = bestSci.credit - 6; // 8 - 6 = 2
-            freeCredits += phyOverflow;
-            overflowSources.push(`含物理溢流 ${phyOverflow}`);
+            csElectiveCredits += phyOverflow;
+        }
+
+        // 規則 2: 專業選修 > 42 -> 自由選修
+        let csOverflow = 0;
+        if (csElectiveCredits > 42) {
+            csOverflow = csElectiveCredits - 42;
+            freeCredits += csOverflow;
+            freeOverflowSources.push(`含專業溢流 ${csOverflow}`);
+        }
+
+        // 規則 3: [NEW] 只有「核心通識 > 18」或「語言 > 6」的超額，才會溢流到自由選修 (Max 4)
+        const coreOverflow = Math.max(0, genEdStats.coreTotal - 18);
+        const langOverflow = Math.max(0, genEdStats.lang - 6);
+        const genEdOverflow = Math.min(coreOverflow + langOverflow, 4);
+        if (genEdOverflow > 0) {
+            freeCredits += genEdOverflow;
+            freeOverflowSources.push(`含通識/語言溢流 ${genEdOverflow}`);
         }
 
         // --- 5. Render Stats ---
@@ -342,14 +402,53 @@ function analyze() {
         document.getElementById('compulsoryCreditsDisplay').innerText = `${compulsoryCredits}`;
 
         document.getElementById('csElectiveCredits').innerText = `${csElectiveCredits}`;
-        if (csOverflow > 0) {
+        if (phyOverflow > 0 && csOverflow > 0) {
+            document.getElementById('csOverflowMsg').innerText = `(含物理溢流 ${phyOverflow}；其中 ${csOverflow} 學分溢流至自由選修)`;
+        } else if (phyOverflow > 0) {
+            document.getElementById('csOverflowMsg').innerText = `(含物理溢流 ${phyOverflow})`;
+        } else if (csOverflow > 0) {
             document.getElementById('csOverflowMsg').innerText = `(其中 ${csOverflow} 學分溢流至自由選修)`;
         } else {
             document.getElementById('csOverflowMsg').innerText = "";
         }
 
         document.getElementById('freeCredits').innerText = `${freeCredits}`;
-        document.getElementById('freeOverflowSource').innerText = overflowSources.join(', ');
+        document.getElementById('freeOverflowSource').innerText = freeOverflowSources.join(', ');
+
+        // --- Render Electives Detail Lists ---
+        // Add overflow as synthetic entries so the list matches the summary totals.
+        if (phyOverflow > 0) {
+            csElectiveCourses.push({ name: '[溢流] 物理(一)(二) 超額併入專業選修', credit: phyOverflow, overflow: true });
+        }
+        if (csOverflow > 0) {
+            freeElectiveCourses.push({ name: '[溢流] 專業選修超額轉入自由選修', credit: csOverflow, overflow: true });
+        }
+        if (genEdOverflow > 0) {
+            freeElectiveCourses.push({ name: '[溢流] 核心/語言超額轉入自由選修', credit: genEdOverflow, overflow: true });
+        }
+
+        const csElectiveListDetail = document.getElementById('csElectiveListDetail');
+        const freeElectiveListDetail = document.getElementById('freeElectiveListDetail');
+
+        if (csElectiveListDetail) {
+            csElectiveListDetail.innerHTML = csElectiveCourses
+                .map(c => {
+                    const nameClass = c.overflow ? 'text-gray-600 italic' : 'text-gray-800';
+                    const creditClass = c.overflow ? 'text-gray-500 font-mono' : 'text-gray-600 font-mono';
+                    return `<li class="flex justify-between gap-3"><span class="${nameClass}">${c.name}</span><span class="${creditClass}">${c.credit}</span></li>`;
+                })
+                .join('') || '<li class="text-gray-400">無</li>';
+        }
+
+        if (freeElectiveListDetail) {
+            freeElectiveListDetail.innerHTML = freeElectiveCourses
+                .map(c => {
+                    const nameClass = c.overflow ? 'text-gray-600 italic' : 'text-gray-800';
+                    const creditClass = c.overflow ? 'text-gray-500 font-mono' : 'text-gray-600 font-mono';
+                    return `<li class="flex justify-between gap-3"><span class="${nameClass}">${c.name}</span><span class="${creditClass}">${c.credit}</span></li>`;
+                })
+                .join('') || '<li class="text-gray-400">無</li>';
+        }
 
         // --- Render General Ed ---
         document.getElementById('coreTotalStatus').innerHTML = `<span class="${genEdStats.coreTotal >= 18 ? 'pass' : 'fail'}">${genEdStats.coreTotal} / 18</span>`;

@@ -12,6 +12,11 @@
 <body class="p-6">
 
     <div class="max-w-6xl mx-auto">
+        <div class="flex justify-end mb-2">
+            <button id="themeToggle" type="button" class="px-3 py-2 rounded border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50 transition" aria-label="切換深色模式">
+                深色模式
+            </button>
+        </div>
         <h1 class="text-3xl font-bold text-center text-blue-800 mb-2">NYCU CS 資工系畢業學分檢核</h1>
         <p class="text-center text-gray-600 mb-6">適用 113 學年度 (2024) 課綱</p>
 
@@ -82,7 +87,7 @@
                 <div class="lg:col-span-1 flex flex-col gap-6">
                     
                     <!-- 1. General Education -->
-                    <div class="section-card border-t-4 border-orange-400 mb-0">
+                    <div class="section-card mb-0">
                         <h2 class="text-xl font-bold border-b pb-2 mb-4 text-orange-700">通識與語言 (門檻24+)</h2>
                         
                         <div class="mb-4">
@@ -150,6 +155,25 @@
                     <div class="section-card h-full mb-0">
                         <h2 class="text-xl font-bold text-blue-900 border-b pb-2 mb-4">七大主題學程</h2>
                         <div id="topicsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Electives Detail Cards (fixed height, scroll inside) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="section-card mb-0">
+                    <h2 class="text-xl font-bold border-b pb-2 mb-4">專業+學程選修明細</h2>
+                    <p class="text-xs text-gray-500 mb-3">學分統計以最上方摘要為準 (可能含溢流)</p>
+                    <div class="h-64 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-inner p-3">
+                        <ul id="csElectiveListDetail" class="space-y-2 text-sm"></ul>
+                    </div>
+                </div>
+
+                <div class="section-card mb-0">
+                    <h2 class="text-xl font-bold border-b pb-2 mb-4">自由選修明細</h2>
+                    <p class="text-xs text-gray-500 mb-3">學分統計以最上方摘要為準 (可能含溢流)</p>
+                    <div class="h-64 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-inner p-3">
+                        <ul id="freeElectiveListDetail" class="space-y-2 text-sm"></ul>
                     </div>
                 </div>
             </div>

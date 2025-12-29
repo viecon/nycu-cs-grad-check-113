@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NYCU CS 畢業學分檢核工具 (113學年度修訂版)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-2">NYCU CS 資工系畢業學分檢核</h1>
+        <p class="text-center text-gray-600 mb-6">適用 113 學年度 (2024) 課綱</p>
+
+        <!-- Input Section -->
+        <div class="section-card">
+            <label class="block mb-2 font-bold text-gray-700">請貼上成績單資料 (包含標題列)：</label>
+            <p class="text-xs text-gray-500 mb-2">支援直接貼上校務系統複製的表格文字 (需包含「向度」欄位以利通識判斷)</p>
+            <textarea id="inputData" class="w-full h-40 p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="筆 | 學期 | 課號 | 開課單位 | 課程名稱 ... | 向度"></textarea>
+            
+            <!-- 英文抵免/免修選項 -->
+            <div class="mt-4 bg-blue-50 p-4 rounded border border-blue-100">
+                <span class="block text-gray-800 font-bold mb-3 border-b border-blue-200 pb-1">英文課程申請狀態 (請依據《語言與溝通課程修習辦法》選擇)</span>
+                <div class="flex flex-col space-y-3">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="radio" name="englishType" value="none" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-gray-700">無 (依成績單內容計算)</span>
+                    </label>
+                    <label class="inline-flex items-start cursor-pointer">
+                        <input type="radio" name="englishType" value="transfer" class="w-4 h-4 mt-1 text-green-600 focus:ring-green-500">
+                        <div class="ml-2">
+                            <span class="block font-bold text-green-700">申請「抵修」 (給予學分)</span>
+                            <span class="block text-xs text-gray-500">獲得 4 學分，計入畢業學分 (適用高階英檢通過者)。</span>
+                        </div>
+                    </label>
+                    <label class="inline-flex items-start cursor-pointer">
+                        <input type="radio" name="englishType" value="exemption" class="w-4 h-4 mt-1 text-purple-600 focus:ring-purple-500">
+                        <div class="ml-2">
+                            <span class="block font-bold text-purple-700">申請「免修」 (不給學分)</span>
+                            <span class="block text-xs text-gray-500">0 學分，須改修其他學科補足學分。</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="analyze()" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">開始分析</button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="result" class="hidden">
+            
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="section-card text-center py-4 bg-blue-50">
+                    <h3 class="text-gray-500 text-sm">總學分 (門檻128)</h3>
+                    <p class="text-3xl font-bold text-blue-600" id="totalCredits">0</p>
+                </div>
+                <div class="section-card text-center py-4">
+                    <h3 class="text-gray-500 text-sm">系必修 (門檻31)</h3>
+                    <p class="text-xl font-bold text-gray-800" id="compulsoryCreditsDisplay">0</p>
+                </div>
+                <div class="section-card text-center py-4">
+                    <h3 class="text-gray-500 text-sm">專業+學程 (門檻42)</h3>
+                    <p class="text-xl font-bold text-green-600" id="csElectiveCredits">0</p>
+                    <p class="text-xs text-gray-400 mt-1" id="csOverflowMsg"></p>
+                </div>
+                <div class="section-card text-center py-4">
+                    <h3 class="text-gray-500 text-sm">自由選修 (門檻17)</h3>
+                    <p class="text-xl font-bold text-purple-600" id="freeCredits">0</p>
+                    <p class="text-xs text-gray-400 mt-1" id="freeOverflowSource"></p>
+                </div>
+            </div>
+
+            <!-- Main Layout Grid (Removed items-start to allow stretching) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Left Column (General Ed + Common + Basic Sci + Compulsory) -->
+                <!-- Added flex flex-col to allow inner item to grow -->
+                <div class="lg:col-span-1 flex flex-col gap-6">
+                    
+                    <!-- 1. General Education -->
+                    <div class="section-card border-t-4 border-orange-400 mb-0">
+                        <h2 class="text-xl font-bold border-b pb-2 mb-4 text-orange-700">通識與語言 (門檻24+)</h2>
+                        
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm font-bold mb-1">
+                                <span>核心課程 (總計)</span>
+                                <span id="coreTotalStatus">0 / 18</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div id="coreTotalBar" class="bg-orange-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-2 pl-2 border-l-2 border-orange-200">
+                            <h4 class="text-sm font-bold text-gray-700">基本素養 (需 >= 6)</h4>
+                            <ul id="basicList" class="text-xs text-gray-600 space-y-1 mb-2"></ul>
+                            <p class="text-right text-xs font-bold" id="basicCount">0</p>
+                        </div>
+
+                        <div class="mb-4 pl-2 border-l-2 border-orange-200">
+                            <h4 class="text-sm font-bold text-gray-700">領域課程 (需 >= 8)</h4>
+                            <ul id="areaList" class="text-xs text-gray-600 space-y-1 mb-2"></ul>
+                            <p class="text-right text-xs font-bold" id="areaCount">0</p>
+                        </div>
+
+                        <div class="border-t pt-2 mt-2">
+                            <div class="flex justify-between text-sm font-bold mb-1">
+                                <span>語言與溝通 (含英文)</span>
+                                <span id="langTotalStatus">0 / 6</span>
+                            </div>
+                            <ul id="langList" class="text-xs text-gray-600 space-y-1"></ul>
+                        </div>
+                    </div>
+
+                     <!-- 2. Common Requirements -->
+                     <div class="section-card mb-0">
+                        <h2 class="text-xl font-bold border-b pb-2 mb-4">共同必修</h2>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex justify-between"><span>體育 (6學期)</span><span id="peStatus"></span></li>
+                            <li class="flex justify-between"><span>服務學習 (2門)</span><span id="serviceStatus"></span></li>
+                            <li class="flex justify-between"><span>導師時間 (通過)</span><span id="mentorStatus"></span></li>
+                        </ul>
+                    </div>
+
+                    <!-- 3. Basic Science -->
+                    <div class="section-card mb-0">
+                        <h2 class="text-xl font-bold border-b pb-2 mb-4">基礎科學 (14學分)</h2>
+                        <ul id="scienceList" class="space-y-2 text-sm"></ul>
+                    </div>
+
+                    <!-- 4. Compulsory (Moved to Left and set to Grow) -->
+                    <!-- flex-1 ensures this card takes up remaining height to match the right column -->
+                    <div class="section-card flex-1 mb-0">
+                        <h2 class="text-xl font-bold border-b pb-2 mb-4">系必修課程</h2>
+                        <ul id="compulsoryList" class="space-y-2 text-sm">
+                            <!-- JS將會產生必修列表 -->
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Right Column (Seven Topics) -->
+                <!-- Added flex flex-col to match structure -->
+                <div class="lg:col-span-2 flex flex-col gap-6">
+                    <!-- Seven Topics (h-full to ensure it fills the column if needed) -->
+                    <div class="section-card h-full mb-0">
+                        <h2 class="text-xl font-bold text-blue-900 border-b pb-2 mb-4">七大主題學程</h2>
+                        <div id="topicsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+            
+             <!-- Course Log Table -->
+             <div class="section-card mt-6">
+                <h2 class="text-xl font-bold border-b pb-2 mb-4">修課明細分類 (系統自動判定)</h2>
+                <div class="h-80 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-inner">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="bg-gray-100 text-gray-600 font-bold sticky top-0 z-10 shadow-sm">
+                            <tr>
+                                <th class="p-3 border-b w-1/4">類別</th>
+                                <th class="p-3 border-b w-1/2">課程名稱</th>
+                                <th class="p-3 border-b w-1/4 text-right">學分 / 備註</th>
+                            </tr>
+                        </thead>
+                        <tbody id="courseLogBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -65,6 +65,9 @@ const CORE_RULES = {
 // --- THEME (DARK MODE) ---
 
 const THEME_STORAGE_KEY = 'nycu-grad-check-theme';
+const INPUT_STORAGE_KEY = 'nycu-grad-check-input';
+const ENGLISH_STORAGE_KEY = 'nycu-grad-check-english';
+const LAST_ANALYZE_STORAGE_KEY = 'nycu-grad-check-last-analyze';
 
 function getSystemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -126,7 +129,49 @@ function normalizeName(name) {
     return n;
 }
 
-document.addEventListener('DOMContentLoaded', initTheme);
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initFormPersistence();
+});
+
+function initFormPersistence() {
+    const inputEl = document.getElementById('inputData');
+    const englishRadios = document.querySelectorAll('input[name="englishType"]');
+    if (!inputEl) return;
+
+    const savedInput = localStorage.getItem(INPUT_STORAGE_KEY);
+    if (savedInput) {
+        inputEl.value = savedInput;
+    }
+
+    inputEl.addEventListener('input', (event) => {
+        const value = event.target.value;
+        if (value.trim()) {
+            localStorage.setItem(INPUT_STORAGE_KEY, value);
+        } else {
+            localStorage.removeItem(INPUT_STORAGE_KEY);
+            localStorage.removeItem(LAST_ANALYZE_STORAGE_KEY);
+        }
+    });
+
+    const savedEnglish = localStorage.getItem(ENGLISH_STORAGE_KEY);
+    if (savedEnglish && englishRadios.length) {
+        englishRadios.forEach(radio => {
+            radio.checked = radio.value === savedEnglish;
+        });
+    }
+
+    englishRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            localStorage.setItem(ENGLISH_STORAGE_KEY, radio.value);
+        });
+    });
+
+    const shouldAutoAnalyze = localStorage.getItem(LAST_ANALYZE_STORAGE_KEY) === 'true';
+    if (shouldAutoAnalyze && savedInput && savedInput.trim()) {
+        setTimeout(() => analyze(), 0);
+    }
+}
 
 function checkCourseTaken(target, userCoursesNormalized) {
     if (Array.isArray(target)) {
@@ -144,8 +189,18 @@ function checkCourseTaken(target, userCoursesNormalized) {
 
 function analyze() {
     try {
-        const raw = document.getElementById('inputData').value;
+        const inputEl = document.getElementById('inputData');
+        const raw = inputEl ? inputEl.value : '';
+        if (!raw.trim()) {
+            alert('請先貼上成績單資料！');
+            return;
+        }
+
         const englishType = document.querySelector('input[name="englishType"]:checked').value;
+
+        localStorage.setItem(ENGLISH_STORAGE_KEY, englishType);
+        localStorage.setItem(INPUT_STORAGE_KEY, raw);
+        localStorage.setItem(LAST_ANALYZE_STORAGE_KEY, 'true');
 
         const lines = raw.trim().split('\n');
         const courses = [];

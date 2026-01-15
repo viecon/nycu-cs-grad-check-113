@@ -103,6 +103,9 @@ function calculateGPA(courses) {
 // --- THEME (DARK MODE) ---
 
 const THEME_STORAGE_KEY = 'nycu-grad-check-theme';
+const INPUT_STORAGE_KEY = 'nycu-grad-check-input';
+const ENGLISH_STORAGE_KEY = 'nycu-grad-check-english';
+const LAST_ANALYZE_STORAGE_KEY = 'nycu-grad-check-last-analyze';
 
 function getSystemTheme() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -164,7 +167,73 @@ function normalizeName(name) {
     return n;
 }
 
-document.addEventListener('DOMContentLoaded', initTheme);
+const GEN_ED_CATEGORY_LABELS = {
+    basic: { log: '[通識-基本]', badge: 'basic' },
+    area: { log: '[通識-領域]', badge: 'area' },
+    lang: { log: '[語言]', badge: 'lang' },
+    core: { log: '[通識-核心其他]' },
+    other: { log: '[通識-其他]' }
+};
+
+function getGenEdCategory(course) {
+    const dimRaw = (course.dimension || '').trim();
+    const typeRaw = (course.type || '').trim();
+    const dim = dimRaw.replace(/\s+/g, '');
+
+    if (dim.startsWith('基本素養')) return 'basic';
+    if (dim.startsWith('領域課程')) return 'area';
+    if (dim && dim.includes('語言')) return 'lang';
+
+    if (!dim && (typeRaw.includes('外語') || typeRaw.includes('語言'))) return 'lang';
+    if (typeRaw.includes('核心課程')) return 'core';
+    if (typeRaw.includes('通識')) return 'other';
+
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initFormPersistence();
+});
+
+function initFormPersistence() {
+    const inputEl = document.getElementById('inputData');
+    const englishRadios = document.querySelectorAll('input[name="englishType"]');
+    if (!inputEl) return;
+
+    const savedInput = localStorage.getItem(INPUT_STORAGE_KEY);
+    if (savedInput) {
+        inputEl.value = savedInput;
+    }
+
+    inputEl.addEventListener('input', (event) => {
+        const value = event.target.value;
+        if (value.trim()) {
+            localStorage.setItem(INPUT_STORAGE_KEY, value);
+        } else {
+            localStorage.removeItem(INPUT_STORAGE_KEY);
+            localStorage.removeItem(LAST_ANALYZE_STORAGE_KEY);
+        }
+    });
+
+    const savedEnglish = localStorage.getItem(ENGLISH_STORAGE_KEY);
+    if (savedEnglish && englishRadios.length) {
+        englishRadios.forEach(radio => {
+            radio.checked = radio.value === savedEnglish;
+        });
+    }
+
+    englishRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+            localStorage.setItem(ENGLISH_STORAGE_KEY, radio.value);
+        });
+    });
+
+    const shouldAutoAnalyze = localStorage.getItem(LAST_ANALYZE_STORAGE_KEY) === 'true';
+    if (shouldAutoAnalyze && savedInput && savedInput.trim()) {
+        setTimeout(() => analyze(), 0);
+    }
+}
 
 function checkCourseTaken(target, userCoursesNormalized) {
     if (Array.isArray(target)) {
@@ -182,8 +251,18 @@ function checkCourseTaken(target, userCoursesNormalized) {
 
 function analyze() {
     try {
-        const raw = document.getElementById('inputData').value;
+        const inputEl = document.getElementById('inputData');
+        const raw = inputEl ? inputEl.value : '';
+        if (!raw.trim()) {
+            alert('請先貼上成績單資料！');
+            return;
+        }
+
         const englishType = document.querySelector('input[name="englishType"]:checked').value;
+
+        localStorage.setItem(ENGLISH_STORAGE_KEY, englishType);
+        localStorage.setItem(INPUT_STORAGE_KEY, raw);
+        localStorage.setItem(LAST_ANALYZE_STORAGE_KEY, 'true');
 
         const lines = raw.trim().split('\n');
         const courses = [];
@@ -268,11 +347,12 @@ function analyze() {
         courses.forEach(c => {
             const nName = normalizeName(c.name);
             const cCode = c.code || "";
-            const cDim = c.dimension || "";
+            const cType = (c.type || '').trim();
+            const genEdCategory = getGenEdCategory(c);
             let categorized = false;
 
             // A. 排除項目
-            if (c.name.includes("體育")) {
+            if (c.name.includes("體育") || cType.includes("體育")) {
                 peCount.add(c.term);
                 log.push(`[體育] ${c.name}`);
                 return;
@@ -287,7 +367,7 @@ function analyze() {
                 log.push(`[導師] ${c.name}`);
                 return;
             }
-            if (c.type.includes("軍訓") || c.name.includes("軍訓") || c.name.includes("全民國防")) {
+            if (cType.includes("軍訓") || c.name.includes("軍訓") || c.name.includes("全民國防")) {
                 log.push(`[軍訓] ${c.name} (${c.credit})`);
                 return;
             }
@@ -344,40 +424,37 @@ function analyze() {
                 log.push(`[基科-生物] ${c.name} (${c.credit})`);
             }
 
-            // D. 通識與語言
-            else if (
-                cDim.includes("基本素養") || cDim.includes("領域課程") || cDim.includes("語言") ||
-                c.type.includes("通識") || c.type.includes("語言") || c.type.includes("外語") ||
-                c.name.includes("英文") || c.name.includes("英語") || c.name.includes("國文") ||
-                c.name.includes("日文") || c.name.includes("德文") || c.name.includes("西班牙文") || c.name.includes("泰文")
-            ) {
+            // D. 通識與語言 (依據「向度」與課程選別判定，避免課名關鍵字誤判)
+            else if (genEdCategory) {
                 categorized = true;
                 totalCredits += c.credit;
 
-                if (cDim.startsWith("基本素養")) {
+                const label = GEN_ED_CATEGORY_LABELS[genEdCategory]?.log || '[通識]';
+
+                if (genEdCategory === 'basic') {
                     genEdStats.basic += c.credit;
                     genEdStats.coreTotal += c.credit;
                     genEdLogs.basic.push(`${c.name} (${c.credit})`);
-                    log.push(`[通識-基本] ${c.name} (${c.credit})`);
+                    log.push(`${label} ${c.name} (${c.credit})`);
                 }
-                else if (cDim.startsWith("領域課程")) {
+                else if (genEdCategory === 'area') {
                     genEdStats.area += c.credit;
                     genEdStats.coreTotal += c.credit;
                     genEdLogs.area.push(`${c.name} (${c.credit})`);
-                    log.push(`[通識-領域] ${c.name} (${c.credit})`);
+                    log.push(`${label} ${c.name} (${c.credit})`);
                 }
-                else if (c.type.includes("語言") || c.type.includes("外語") || cDim.includes("語言") || c.name.includes("文")) {
+                else if (genEdCategory === 'lang') {
                     genEdStats.lang += c.credit;
                     genEdLogs.lang.push(`${c.name} (${c.credit})`);
-                    log.push(`[語言] ${c.name} (${c.credit})`);
+                    log.push(`${label} ${c.name} (${c.credit})`);
                 }
-                else if (c.type.includes("核心課程")) {
+                else if (genEdCategory === 'core') {
                     genEdStats.coreTotal += c.credit;
-                    log.push(`[通識-核心其他] ${c.name} (${c.credit})`);
+                    log.push(`${label} ${c.name} (${c.credit})`);
                 }
-                else {
+                else if (genEdCategory === 'other') {
                     genEdStats.otherGen += c.credit;
-                    log.push(`[通識-其他] ${c.name} (${c.credit})`);
+                    log.push(`${label} ${c.name} (${c.credit})`);
                 }
             }
 

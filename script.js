@@ -60,6 +60,44 @@ const CORE_RULES = {
     basicProg: "基礎程式設計"
 };
 
+// GPA 對照表
+const GRADE_TO_GPA = {
+    'A+': 4.3,
+    'A': 4.0,
+    'A-': 3.7,
+    'B+': 3.3,
+    'B': 3.0,
+    'B-': 2.7,
+    'C+': 2.3,
+    'C': 2.0,
+    'C-': 1.7,
+    'D+': 1.3,
+    'D': 1.0,
+    'E': 0.0,
+    'F': 0.0,
+    'X': 0.0
+};
+
+// 計算 GPA 的函數
+function calculateGPA(courses) {
+    let totalPoints = 0;
+    let totalCredits = 0;
+
+    courses.forEach(c => {
+        const grade = c.grade.toUpperCase();
+        const gpa = GRADE_TO_GPA[grade];
+
+        // 只計算有 GPA 對應的成績（排除通過/不通過等）
+        if (gpa !== undefined && c.credit > 0) {
+            totalPoints += gpa * c.credit;
+            totalCredits += c.credit;
+        }
+    });
+
+    if (totalCredits === 0) return null;
+    return (totalPoints / totalCredits).toFixed(2);
+}
+
 // --- HELPER FUNCTIONS ---
 
 // --- THEME (DARK MODE) ---
@@ -184,6 +222,9 @@ function analyze() {
         });
 
         const userCourseNames = courses.map(c => normalizeName(c.name));
+
+        // 計算 GPA
+        const gpa = calculateGPA(courses);
 
         // 2. Initialize Counters
         let totalCredits = 0;
@@ -400,6 +441,12 @@ function analyze() {
         // --- 5. Render Stats ---
         document.getElementById('totalCredits').innerText = totalCredits;
         document.getElementById('compulsoryCreditsDisplay').innerText = `${compulsoryCredits}`;
+
+        // 顯示 GPA
+        const gpaDisplay = document.getElementById('gpaDisplay');
+        if (gpaDisplay) {
+            gpaDisplay.innerText = gpa !== null ? gpa : 'N/A';
+        }
 
         document.getElementById('csElectiveCredits').innerText = `${csElectiveCredits}`;
         if (phyOverflow > 0 && csOverflow > 0) {

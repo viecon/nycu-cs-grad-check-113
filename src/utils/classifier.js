@@ -20,7 +20,6 @@ export function classifyCourses(courses) {
 
 function detectCategory(c) {
   const nName = normalizeName(c.name)
-  const cCode = c.code || ''
   const cType = (c.type || '').trim()
 
   // 1. Excluded: PE, service learning, mentor, military
@@ -56,14 +55,34 @@ function detectCategory(c) {
   if (genCat === 'other') return CATEGORIES.GEN_OTHER
 
   // 7. 專業/學程選修
-  if (
-    c.dept.includes('資工') || c.dept.includes('網工') ||
-    c.dept.includes('數據') || c.dept.includes('資安') ||
-    c.dept.includes('資科') || cCode.startsWith('5')
-  ) return CATEGORIES.CS_ELECTIVE
+  if (isCsDepartmentCourse(c)) return CATEGORIES.CS_ELECTIVE
 
   // 8. 自由選修 (default)
   return CATEGORIES.FREE
+}
+
+function isCsDepartmentCourse(c) {
+  const dept = normalizeName(c.dept || '')
+  const csDeptKeywords = [
+    '資訊共同',
+    '資工',
+    '資訊工程',
+    '資科',
+    '資科工',
+    '資訊科學與工程',
+    '網工',
+    '網路工程',
+    '多工',
+    '多媒',
+    '多媒體工程',
+    '數科',
+    '數據',
+    '數據科學',
+    '資安',
+    '資訊安全',
+  ]
+
+  return csDeptKeywords.some(keyword => dept.includes(keyword))
 }
 
 /**

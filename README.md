@@ -1,5 +1,7 @@
 # NYCU CS 畢業學分檢核工具 (113學年度修訂版)
 
+Website: https://nycu-cs-grad-check-113.viecon.site/
+
 適用 **113 學年度 (2024)** 課綱的 NYCU 資工系畢業學分自動檢核工具。
 
 ## 功能特色

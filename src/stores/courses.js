@@ -4,7 +4,7 @@ import { useLocalStorage } from '@vueuse/core'
 import { parseTranscript } from '../utils/parser.js'
 import { classifyCourses, computeStats } from '../utils/classifier.js'
 import { SEVEN_TOPICS } from '../utils/constants.js'
-import { normalizeName } from '../utils/parser.js'
+import { evaluateTopics } from '../utils/topics.js'
 
 export const useCoursesStore = defineStore('courses', () => {
   // --- Persisted input state ---
@@ -68,27 +68,7 @@ export const useCoursesStore = defineStore('courses', () => {
   // --- Computed: seven topics status ---
   const topicStatus = computed(() => {
     const userNames = effectiveCourses.value.map(c => c.normName)
-    return SEVEN_TOPICS.map(topic => {
-      let takenCount = 0
-      const items = topic.courses.map(req => {
-        const isTaken = checkCourseTaken(req, userNames)
-        if (isTaken) takenCount++
-        return {
-          displayName: Array.isArray(req) ? req.join(' / ') : req,
-          isTaken,
-        }
-      })
-      let isComplete = false
-      let statusText = ''
-      if (topic.type === 'fixed') {
-        isComplete = takenCount >= topic.courses.length
-        statusText = `已修習: ${takenCount} / ${topic.courses.length} 門`
-      } else {
-        isComplete = takenCount >= 4
-        statusText = `已修習: ${takenCount} / 4 門`
-      }
-      return { ...topic, items, isComplete, statusText }
-    })
+    return evaluateTopics(SEVEN_TOPICS, userNames)
   })
 
   return {
@@ -106,15 +86,3 @@ export const useCoursesStore = defineStore('courses', () => {
     resetOverrides,
   }
 })
-
-function checkCourseTaken(target, userCoursesNormalized) {
-  if (Array.isArray(target)) {
-    return target.some(t => checkCourseTaken(t, userCoursesNormalized))
-  }
-  const targetNorm = normalizeName(target)
-  if (userCoursesNormalized.includes(targetNorm)) return true
-  if (targetNorm.includes('專題')) {
-    return userCoursesNormalized.some(uc => uc === targetNorm)
-  }
-  return userCoursesNormalized.some(uc => uc.includes(targetNorm))
-}

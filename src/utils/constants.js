@@ -1,45 +1,145 @@
+const alternatives = (...courses) => courses
+
 export const SEVEN_TOPICS = [
   {
     title: '人工智慧與數據科學',
-    type: 'fixed',
-    courses: ['資料庫系統概論', '人工智慧概論', '機器學習概論', '人工智慧總整與實作'],
+    requirements: [
+      { label: '必修', required: 1, courses: ['資料庫系統概論'] },
+      {
+        label: '左列課程任選 3 科',
+        required: 3,
+        courses: [
+          alternatives('人工智慧', '人工智慧概論'),
+          alternatives('機器學習', '機器學習概論'),
+          alternatives('自然語言處理', '自然語言處理概論'),
+          '資料探勘',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['人工智慧總整與實作'] },
+    ],
   },
   {
     title: '資訊安全',
-    type: 'fixed',
-    courses: ['計算機網路概論', ['密碼學概論', '密碼工程'], '網路程式設計概論', '電腦安全總整與實作'],
-    note: '密碼學概論 與 密碼工程 擇一即可',
+    requirements: [
+      {
+        label: '必修',
+        required: 1,
+        courses: [alternatives('計算機網路', '計算機網路概論')],
+      },
+      {
+        label: '左列課程任選 3 科',
+        required: 3,
+        courses: [
+          alternatives('網路程式設計', '網路程式設計概論'),
+          alternatives('機器學習', '機器學習概論'),
+          '密碼學概論',
+          alternatives('編譯器設計', '編譯器設計概論'),
+          '密碼工程',
+          '網路安全',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['電腦安全總整與實作'] },
+    ],
   },
   {
     title: '多媒體工程',
-    type: 'fixed',
-    courses: ['數值方法', '計算機圖學概論', '影像處理概論', '多媒體與人機互動總整與實作'],
+    requirements: [
+      { label: '必修', required: 1, courses: ['數值方法'] },
+      {
+        label: '左列課程任選 3 科',
+        required: 3,
+        courses: [
+          alternatives('計算機圖學', '計算機圖學概論'),
+          alternatives('機器學習', '機器學習概論'),
+          alternatives('影像處理', '影像處理概論'),
+          '電腦視覺',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['多媒體與人機互動總整與實作'] },
+    ],
   },
   {
     title: '網路工程',
-    type: 'fixed',
-    courses: ['計算機網路概論', '通訊原理與無線網路', '網路程式設計概論', '網路系統總整與實作'],
+    requirements: [
+      {
+        label: '必修',
+        required: 1,
+        courses: [alternatives('計算機網路', '計算機網路概論')],
+      },
+      {
+        label: '通訊與無線網路課程任選 1 科',
+        required: 1,
+        courses: ['通訊原理與無線網路', '無線多媒體網路'],
+      },
+      {
+        label: '網路進階課程任選 1 科',
+        required: 1,
+        courses: [
+          alternatives('網路程式設計', '網路程式設計概論'),
+          alternatives('圖形理論', '圖形理論概論', '圖形理論導論'),
+          '軟體定義網路及網路功能虛擬化',
+          '網路規劃與管理實務',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['網路系統總整與實作'] },
+    ],
   },
   {
     title: '系統軟體',
-    type: 'fixed',
-    courses: ['編譯器設計概論', '計算機系統管理', ['高等UNIX程式設計', '記憶體與儲存系統'], '作業系統總整與實作'],
-    note: '高等UNIX程式設計停開後，記憶體與儲存系統可採計',
+    requirements: [
+      {
+        label: '左列課程任選 3 科',
+        required: 3,
+        courses: [
+          '資料庫系統概論',
+          alternatives('編譯器設計', '編譯器設計概論'),
+          '計算機系統管理',
+          '高等UNIX程式設計',
+          '記憶體與儲存系統',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['作業系統總整與實作'] },
+    ],
   },
   {
     title: '軟硬體整合',
-    type: 'fixed',
-    courses: ['數位電路實驗', '編譯器設計概論', '微處理機系統原理與實作', '嵌入式系統總整與實作'],
+    requirements: [
+      { label: '必修', required: 1, courses: ['數位電路實驗'] },
+      {
+        label: '左列課程任選 3 科',
+        required: 3,
+        courses: [
+          alternatives('編譯器設計', '編譯器設計概論'),
+          '微處理機系統原理與實作',
+          '計算機架構',
+          'VLSI設計與實作',
+          '機器學習晶片架構設計',
+        ],
+      },
+      { label: '總整課程', required: 1, courses: ['嵌入式系統總整與實作'] },
+    ],
   },
   {
     title: '計算理論',
-    type: 'pick4',
-    courses: [
-      '人工智慧概論', '數值方法', '正規語言概論', '組合數學',
-      '競技程式設計(一)', ['圖形理論', '圖形理論導論'], '隨機演算法',
-      '資訊理論與壓縮編碼的應用', '機器學習演算法理論基礎', '近似演算法',
+    requirements: [
+      {
+        label: '左列課程任選 4 科',
+        required: 4,
+        courses: [
+          alternatives('人工智慧', '人工智慧概論'),
+          '數值方法',
+          '組合數學',
+          '競技程式設計(一)',
+          alternatives('圖形理論', '圖形理論概論', '圖形理論導論'),
+          '正規語言概論',
+          '正規語言與計算理論',
+          '隨機演算法',
+          '資訊理論與壓縮編碼的應用',
+          '機器學習演算法理論基礎',
+          '近似演算法',
+        ],
+      },
     ],
-    note: '任選 4 門',
   },
 ]
 

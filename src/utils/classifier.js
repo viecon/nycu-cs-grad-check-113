@@ -106,7 +106,6 @@ export function computeStats(classifiedCourses, overrides = {}, englishType = 'n
   const genEdLogs = { basic: [], area: [], lang: [] }
 
   let peTerms = new Set()
-  let serviceCount = 0
   let mentorPassed = false
 
   const sciCredits = { calc: 0, phy: 0, chem: 0, bio: 0 }
@@ -136,7 +135,6 @@ export function computeStats(classifiedCourses, overrides = {}, englishType = 'n
 
     if (cat === CATEGORIES.EXCLUDED) {
       if (c.name.includes('體育') || (c.type || '').includes('體育')) peTerms.add(c.term)
-      else if (c.name.includes('服務學習')) serviceCount++
       else if (c.name.includes('導師時間')) mentorPassed = true
       return
     }
@@ -264,7 +262,6 @@ export function computeStats(classifiedCourses, overrides = {}, englishType = 'n
     compCheck,
     basicProgCheck,
     peCount: peTerms.size,
-    serviceCount,
     mentorPassed,
     phyOverflow,
     csOverflow,

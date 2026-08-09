@@ -17,10 +17,6 @@ const s = computed(() => store.stats)
         <span :class="s.peCount >= 6 ? 'pass' : 'fail'">{{ s.peCount }} / 6</span>
       </li>
       <li class="flex justify-between">
-        <span>服務學習（2門）</span>
-        <span :class="s.serviceCount >= 2 ? 'pass' : 'fail'">{{ s.serviceCount }} / 2</span>
-      </li>
-      <li class="flex justify-between">
         <span>導師時間</span>
         <span :class="s.mentorPassed ? 'pass' : 'fail'">{{ s.mentorPassed ? '✔' : '✘' }}</span>
       </li>

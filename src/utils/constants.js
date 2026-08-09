@@ -184,8 +184,6 @@ export const CATEGORY_LABELS = {
   genBasic:    '通識 - 基本素養',
   genArea:     '通識 - 領域課程',
   genLang:     '語言與溝通',
-  genCore:     '通識 - 核心其他',
-  genOther:    '通識 - 其他',
   csElective:  '專業/學程選修',
   free:        '自由選修',
   excluded:    '排除 (體育/服學/導師/軍訓)',

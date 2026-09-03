@@ -12,15 +12,15 @@ test('accepts a minimal valid selection for every 115 academic year topic', () =
   const cases = [
     [
       '人工智慧與數據科學',
-      ['資料庫系統概論', '人工智慧', '機器學習概論', '資料探勘', '人工智慧總整與實作'],
+      ['人工智慧', '機器學習概論', '資料探勘', '人工智慧總整與實作'],
     ],
     [
       '資訊安全',
-      ['計算機網路概論', '網路程式設計', '密碼學概論', '網路安全', '電腦安全總整與實作'],
+      ['計算機網路概論', '密碼學概論', '網路安全', '電腦安全總整與實作'],
     ],
     [
       '多媒體工程',
-      ['數值方法', '計算機圖學', '機器學習', '電腦視覺', '多媒體與人機互動總整與實作'],
+      ['數值方法', '計算機圖學', '電腦視覺', '多媒體與人機互動總整與實作'],
     ],
     [
       '網路工程',
@@ -32,7 +32,7 @@ test('accepts a minimal valid selection for every 115 academic year topic', () =
     ],
     [
       '軟硬體整合',
-      ['數位電路實驗', '微處理機系統原理與實作', '計算機架構', '機器學習晶片架構設計', '嵌入式系統總整與實作'],
+      ['數位電路實驗', '計算機架構', '機器學習晶片架構設計', '嵌入式系統總整與實作'],
     ],
     [
       '計算理論',
@@ -41,20 +41,30 @@ test('accepts a minimal valid selection for every 115 academic year topic', () =
   ]
 
   for (const [title, courses] of cases) {
+    assert.equal(courses.length, 4, title)
     assert.equal(evaluate(title, courses).isComplete, true, title)
+  }
+})
+
+test('requires exactly four courses for every topic', () => {
+  for (const topic of SEVEN_TOPICS) {
+    const requiredCount = topic.requirements.reduce((sum, requirement) => (
+      sum + requirement.required
+    ), 0)
+
+    assert.equal(requiredCount, 4, topic.title)
   }
 })
 
 test('does not let a capstone title satisfy a similarly named elective', () => {
   const result = evaluate('人工智慧與數據科學', [
-    '資料庫系統概論',
     '機器學習概論',
     '自然語言處理概論',
     '人工智慧總整與實作',
   ])
 
   assert.equal(result.isComplete, false)
-  assert.equal(result.groups[1].takenCount, 2)
+  assert.equal(result.groups[0].takenCount, 2)
 })
 
 test('keeps the two network engineering elective groups independent', () => {

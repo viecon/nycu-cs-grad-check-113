@@ -4,11 +4,11 @@ export const SEVEN_TOPICS = [
   {
     title: '人工智慧與數據科學',
     requirements: [
-      { label: '必修', required: 1, courses: ['資料庫系統概論'] },
       {
         label: '左列課程任選 3 科',
         required: 3,
         courses: [
+          '資料庫系統概論',
           alternatives('人工智慧', '人工智慧概論'),
           alternatives('機器學習', '機器學習概論'),
           alternatives('自然語言處理', '自然語言處理概論'),
@@ -22,14 +22,10 @@ export const SEVEN_TOPICS = [
     title: '資訊安全',
     requirements: [
       {
-        label: '必修',
-        required: 1,
-        courses: [alternatives('計算機網路', '計算機網路概論')],
-      },
-      {
         label: '左列課程任選 3 科',
         required: 3,
         courses: [
+          alternatives('計算機網路', '計算機網路概論'),
           alternatives('網路程式設計', '網路程式設計概論'),
           alternatives('機器學習', '機器學習概論'),
           '密碼學概論',
@@ -44,11 +40,11 @@ export const SEVEN_TOPICS = [
   {
     title: '多媒體工程',
     requirements: [
-      { label: '必修', required: 1, courses: ['數值方法'] },
       {
         label: '左列課程任選 3 科',
         required: 3,
         courses: [
+          '數值方法',
           alternatives('計算機圖學', '計算機圖學概論'),
           alternatives('機器學習', '機器學習概論'),
           alternatives('影像處理', '影像處理概論'),
@@ -104,11 +100,11 @@ export const SEVEN_TOPICS = [
   {
     title: '軟硬體整合',
     requirements: [
-      { label: '必修', required: 1, courses: ['數位電路實驗'] },
       {
         label: '左列課程任選 3 科',
         required: 3,
         courses: [
+          '數位電路實驗',
           alternatives('編譯器設計', '編譯器設計概論'),
           '微處理機系統原理與實作',
           '計算機架構',
